@@ -68,7 +68,8 @@ def main():
     else:
         build_utils.print_info("head_ref same as base_ref, assuming non-PR build")
 
-    cleanup_previous_build()
+    if WINDOWS:
+        cleanup_previous_build()
 
     this_script_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -150,7 +151,8 @@ def main():
             build_utils.print_warning(f'Failed to download: {err}')
             args.incremental = False
 
-    git_pull("src", args.repository, args.base_ref)
+    if WINDOWS:
+        git_pull("src", args.repository, args.base_ref)
 
     benchmark: bool = 'rootbench' in options_dict and options_dict['rootbench'] == "ON"
     if benchmark:
@@ -296,11 +298,6 @@ def cleanup_previous_build():
             }}
             New-Item -Force -Type directory -Path {WORKDIR}
         """)
-    else:
-        # mac/linux/POSIX
-        result = subprocess_with_log(f"""
-            rm -rf {WORKDIR}/*
-        """)
 
     if result != 0:
         die(result, "Failed to clean up previous artifacts")
@@ -371,9 +368,9 @@ def download_artifacts(obj_prefix: str):
             # TODO: Simplify after ROOT is Python 3.12+ only
             # c.f. https://docs.python.org/3.12/library/tarfile.html#extraction-filters
             if hasattr(tarfile, "data_filter"):
-                tar.extractall(WORKDIR, filter="data")
+                tar.extract("build", WORKDIR, filter="data")
             else:
-                tar.extractall(WORKDIR)
+                tar.extract("build", WORKDIR)
 
         build_utils.log.add(f'\ncd {WORKDIR} && tar -xf {tar_path}\n')
 
