@@ -288,7 +288,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.ref_name }}
           path: "src"
 
       - name: Pull Request Build
@@ -494,13 +493,12 @@ jobs:
         run: |
           ccache -o max_size=${{ matrix.is_special && '5G' || '1.5G' }}
           ccache -s || true
-          if [ -d "$PYTHON_VENV/bin/" ]; then
-            . "$PYTHON_VENV/bin/activate" && echo PATH=$PATH >> $GITHUB_ENV;
-          fi
-          if ${{ contains(matrix.property, 'auto-registration off') }}; then
-            echo "Disabling ROOT's object auto registration for this job"
-            echo ROOT_OBJECT_AUTO_REGISTRATION=0 >> $GITHUB_ENV;
-          fi
+
+      - name: Set up Python Virtual Env
+        # if the `if` expr is false, `if` still has exit code 0.
+        # if the `if` block is entered, the block's exit code becomes the exit
+        # code of the `if`.
+        run: 'if [ -d /py-venv/ROOT-CI/bin/ ]; then . /py-venv/ROOT-CI/bin/activate && echo PATH=$PATH >> $GITHUB_ENV; fi'
 
       - name: Directory tree
         run: ls -l
@@ -508,23 +506,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.ref_name }}
-          path: ${{ env.SRC_DIR }}
-
-      - name: Directory tree
-        run: ls -l
-
-      - name: Dump GitHub context
-        env:
-          GITHUB_CONTEXT: ${{ toJSON(github) }}
-          JOB_CONTEXT: ${{ toJSON(job) }}
-          ENV_CONTEXT: ${{ toJSON(env) }}
-        run: |
-          echo "$GITHUB_CONTEXT"
-          echo "--------------------------"
-          echo "$JOB_CONTEXT"
-          echo "--------------------------"
-          echo "$ENV_CONTEXT"
+          path: "src"
 
       - name: Print debug info
         run:  'printf "%s@%s\\n" "$(whoami)" "$(hostname)";
@@ -629,8 +611,8 @@ jobs:
         id: postInstall
         if: steps.install.outcome == 'success'
         run: |
-          cmake -S test/PostInstall/ -B ${{ env.POST_INSTALL_DIR }} -DCMAKE_PREFIX_PATH=${{ env.INSTALL_DIR }};
-          cmake --build ${{ env.POST_INSTALL_DIR }};
+          cmake -S test/PostInstall/ -B ${POST_INSTALL_DIR} -DCMAKE_PREFIX_PATH=${INSTALL_DIR};
+          cmake --build ${POST_INSTALL_DIR};
 
       - name: CTest in post-install test project
         if: steps.postInstall.outcome == 'success' && matrix.property != 'asan'
