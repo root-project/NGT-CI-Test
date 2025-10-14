@@ -116,7 +116,7 @@ jobs:
       HOME: /Users/sftnight
 
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         # Specify platform + optional build option overrides
         # Build options: https://root.cern/install/build_from_source/#all-build-options
@@ -483,6 +483,7 @@ jobs:
         CONTAINER_OPTIONS: "--security-opt label=disable --rm ${{ matrix.property == 'gpu' && '--device nvidia.com/gpu=all' || '' }}" #KEEP IN SYNC WITH ABOVE
 
     env:
+      SRC_DIR: /github/home/ROOT-CI/src
       BUILD_DIR: /github/home/ROOT-CI/build
       INSTALL_DIR: /github/home/ROOT-CI/install
       POST_INSTALL_DIR: /github/home/ROOT-CI/PostInstall
@@ -508,7 +509,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           ref: ${{ inputs.ref_name }}
-          path: "src"
+          path: ${{ env.SRC_DIR }}
 
       - name: Directory tree
         run: ls -l
