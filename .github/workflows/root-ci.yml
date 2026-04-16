@@ -453,10 +453,7 @@ jobs:
             property: march_native
 
     runs-on:
-      - self-hosted
-      - linux
-      - ${{ matrix.architecture == null && 'x64' || matrix.architecture }}
-      - ${{ matrix.extra-runs-on == null && 'cpu' || matrix.extra-runs-on }}
+      group: GPU
 
     name: |
       ${{ matrix.image }} ${{ matrix.property }}
