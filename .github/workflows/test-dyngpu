@@ -1,0 +1,12 @@
+name: self-hosted-workflow
+on:
+  workflow_dispatch:
+
+jobs:
+  gpu-t4:
+    runs-on: dyngpu-root-t4 
+    container: docker.io/rochaporto/gpu_burn
+    steps:
+      - name: nvidia-smi
+        run: |
+          nvidia-smi
