@@ -176,8 +176,8 @@ jobs:
           build-directory: /github/home/ROOT-CI/src/
 
       - name: Workflow dispatch
-        if:   ${{ github.event_name == 'workflow_dispatch' && !matrix.is_special }}
-        run: ".github/workflows/root-ci-config/build_root.py
+        if:   ${{ github.event_name == 'workflow_dispatch' }}
+        run: "src/.github/workflows/root-ci-config/build_root.py
                     --buildtype      ${{ inputs.buildtype }}
                     --platform       ${{ matrix.image }}
                     --incremental    ${{ inputs.incremental }}
@@ -189,7 +189,7 @@ jobs:
 
       - name: Nightly build
         if:   github.event_name == 'schedule'
-        run: ".github/workflows/root-ci-config/build_root.py
+        run: "src/.github/workflows/root-ci-config/build_root.py
                     --buildtype      Release
                     --platform       ${{ matrix.image }}
                     --incremental    false
