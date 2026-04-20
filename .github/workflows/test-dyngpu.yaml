@@ -3,8 +3,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  gpu-t4:
-    runs-on: dyngpu-root-t4 
+  test:
+    runs-on: test-dyngpu-root 
     container: docker.io/rochaporto/gpu_burn
     steps:
       - name: nvidia-smi
