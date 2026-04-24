@@ -1,4 +1,4 @@
-# name: self-hosted-workflow
+name: test-dyngpu
 # on:
 #   workflow_dispatch:
 
@@ -12,7 +12,6 @@
 #         run: |
 #           nvidia-smi
 
-name: 'ROOT CI'
 
 on:
   # https://github.com/root-project/root/pull/12112#issuecomment-1411004278
