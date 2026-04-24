@@ -198,6 +198,9 @@ jobs:
                     --binaries       ${{ inputs.binaries }}
                     --repository     ${{ github.server_url }}/${{ github.repository }}
               "
+      - name: Sleep
+        run: |
+          sleep 3000
 
       - name: Nightly build
         if:   github.event_name == 'schedule'
