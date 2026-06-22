@@ -200,9 +200,9 @@ jobs:
           echo "base_ref=${{ inputs.base_ref }}"
           echo "head_ref=${{ inputs.head_ref }}"
 
-      - name: Debug CMake
-        run: |
-          cmake -S $GITHUB_WORKSPACE/src -B $GITHUB_WORKSPACE/build -DCMAKE_BUILD_TYPE=Debug
+      # - name: Debug CMake
+      #   run: |
+      #     cmake -S $GITHUB_WORKSPACE/src -B $GITHUB_WORKSPACE/build -DCMAKE_BUILD_TYPE=Debug
           
       - name: Workflow dispatch
         if:   ${{ github.event_name == 'workflow_dispatch' }}
