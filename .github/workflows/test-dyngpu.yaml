@@ -187,6 +187,13 @@ jobs:
         with:
           build-directory: /github/home/ROOT-CI/src/
 
+      - name: Debug src
+        run: |
+          echo "PWD: $(pwd)"
+          echo "WORKSPACE: $GITHUB_WORKSPACE"
+          ls -la $GITHUB_WORKSPACE
+          ls -la $GITHUB_WORKSPACE/src || echo "SRC MISSING"
+
       - name: Workflow dispatch
         if:   ${{ github.event_name == 'workflow_dispatch' }}
         run: "src/.github/workflows/root-ci-config/build_root.py
