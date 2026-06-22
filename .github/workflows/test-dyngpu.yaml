@@ -194,6 +194,12 @@ jobs:
           ls -la $GITHUB_WORKSPACE
           ls -la $GITHUB_WORKSPACE/src || echo "SRC MISSING"
 
+
+      - name: Debug inputs
+        run: |
+          echo "base_ref=${{ inputs.base_ref }}"
+          echo "head_ref=${{ inputs.head_ref }}"
+          
       - name: Workflow dispatch
         if:   ${{ github.event_name == 'workflow_dispatch' }}
         run: |
