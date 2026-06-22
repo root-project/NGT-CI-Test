@@ -196,15 +196,16 @@ jobs:
 
       - name: Workflow dispatch
         if:   ${{ github.event_name == 'workflow_dispatch' }}
-        run: "src/.github/workflows/root-ci-config/build_root.py
-                    --buildtype      ${{ inputs.buildtype }}
-                    --platform       ${{ matrix.image }}
-                    --incremental    ${{ inputs.incremental }}
-                    --base_ref       ${{ inputs.base_ref }}
-                    --head_ref       ${{ inputs.head_ref }}
-                    --binaries       ${{ inputs.binaries }}
-                    --repository     ${{ github.server_url }}/${{ github.repository }}
-              "
+        run: |
+          set -e
+          src/.github/workflows/root-ci-config/build_root.py \
+            --buildtype      ${{ inputs.buildtype }}
+            --platform       ${{ matrix.image }}
+            --incremental    ${{ inputs.incremental }}
+            --base_ref       ${{ inputs.base_ref }}
+            --head_ref       ${{ inputs.head_ref }}
+            --binaries       ${{ inputs.binaries }}
+            --repository     ${{ github.server_url }}/${{ github.repository }}
       - name: Sleep
         run: |
           sleep 3000
