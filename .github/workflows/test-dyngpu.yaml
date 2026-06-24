@@ -91,7 +91,7 @@ jobs:
             property: gpu
             extra-runs-on: gpu
 
-    runs-on: dyngpu-root-a100
+    runs-on: dyngpu-root-nogpu
 
     name: |
       ${{ matrix.image }} ${{ matrix.property }}
