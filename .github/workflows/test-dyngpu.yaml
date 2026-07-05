@@ -1,17 +1,4 @@
 name: test-dyngpu
-# on:
-#   workflow_dispatch:
-
-# jobs:
-#   test:
-#     runs-on: 
-#       group: GPU
-#     container: docker.io/rochaporto/gpu_burn
-#     steps:
-#       - name: nvidia-smi
-#         run: |
-#           nvidia-smi
-
 
 on:
   # https://github.com/root-project/root/pull/12112#issuecomment-1411004278
@@ -99,12 +86,12 @@ jobs:
 
     container:
       image: registry.cern.ch/root-ci/${{ matrix.image }}:buildready # KEEP IN SYNC WITH env key below
-      options: --security-opt label=disable --rm ${{ matrix.property == 'gpu' && '--device nvidia.com/gpu=all' || '' }} # KEEP IN SYNC WITH env key below
+      # options: --security-opt label=disable --rm ${{ matrix.property == 'gpu' && '--device nvidia.com/gpu=all' || '' }} # KEEP IN SYNC WITH env key below
       # volumes:
         # - ${{ matrix.image }}_ccache_volume:/github/home/.cache/ccache
       env:
         CONTAINER_IMAGE: "registry.cern.ch/root-ci/${{ matrix.image }}:buildready" #KEEP IN SYNC WITH ABOVE
-        CONTAINER_OPTIONS: "--security-opt label=disable --rm ${{ matrix.property == 'gpu' && '--device nvidia.com/gpu=all' || '' }}" #KEEP IN SYNC WITH ABOVE
+        # CONTAINER_OPTIONS: "--security-opt label=disable --rm ${{ matrix.property == 'gpu' && '--device nvidia.com/gpu=all' || '' }}" #KEEP IN SYNC WITH ABOVE
 
     steps:
       - name: Dump GitHub context
