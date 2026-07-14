@@ -74,7 +74,7 @@ jobs:
         include:
           - image: fedora42
             overrides: ["CMAKE_CXX_STANDARD=23"]
-          - image: ubuntu2404-cuda
+          - image: ubuntu2404
             property: gpu
             extra-runs-on: gpu
 
