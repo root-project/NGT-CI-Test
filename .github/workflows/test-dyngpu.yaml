@@ -194,6 +194,10 @@ jobs:
       - name: Workflow dispatch
         if:   ${{ github.event_name == 'workflow_dispatch' }}
         run: |
+          echo "PWD: $(pwd)"
+          echo "WORKSPACE: $GITHUB_WORKSPACE"
+          ls -la $GITHUB_WORKSPACE
+          ls -la $GITHUB_WORKSPACE/src || echo "SRC MISSING"
           set -e
           src/.github/workflows/root-ci-config/build_root.py \
             --buildtype      "${{ inputs.buildtype }}" \
