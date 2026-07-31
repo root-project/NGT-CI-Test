@@ -79,10 +79,11 @@ jobs:
             extra-runs-on: gpu
 
     runs-on:
-      - self-hosted
-      - linux
-      - ${{ matrix.architecture == null && 'x64' || matrix.architecture }}
-      - ${{ matrix.extra-runs-on == null && 'cpu' || matrix.extra-runs-on }}
+      - ubuntu-latest 
+      # - self-hosted
+      # - linux
+      # - ${{ matrix.architecture == null && 'x64' || matrix.architecture }}
+      # - ${{ matrix.extra-runs-on == null && 'cpu' || matrix.extra-runs-on }}
 
     name: |
       ${{ matrix.image }} ${{ matrix.property }}
