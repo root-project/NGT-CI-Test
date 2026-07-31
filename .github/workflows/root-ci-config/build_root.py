@@ -288,7 +288,7 @@ def download_artifacts(obj_prefix: str):
 
     except Exception as err:
         build_utils.print_warning("failed to download/extract:", err)
-        shutil.rmtree(os.path.join(WORKDIR, "src"), ignore_errors=True)
+        # shutil.rmtree(os.path.join(WORKDIR, "src"), ignore_errors=True)
         shutil.rmtree(os.path.join(WORKDIR, "build"), ignore_errors=True)
         raise err
 
