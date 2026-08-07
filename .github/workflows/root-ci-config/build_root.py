@@ -53,6 +53,13 @@ except:
 COMPRESSIONLEVEL = 6 if not WINDOWS else 1
 
 
+def get_cgroup_cpu_limit() -> int:
+    try:
+        quota, period = open("/sys/fs/cgroup/cpu.max").read().split()
+        return os.cpu_count() if quota == "max" else max(1, int(quota) // int(period))
+    except FileNotFoundError:
+        return os.cpu_count()
+
 def main():
     # openstack.enable_logging(debug=True)
     print("WORKDIR=" + WORKDIR)
@@ -319,7 +326,7 @@ def run_ctest(extra_ctest_flags: str) -> int:
     builddir = os.path.join(WORKDIR, "build")
     ctest_result = subprocess_with_log(f"""
         cd '{builddir}'
-        ctest --output-on-failure --parallel {os.cpu_count()} --output-junit TestResults.xml {extra_ctest_flags}
+        ctest --output-on-failure --parallel {get_cgroup_cpu_limit()} --output-junit TestResults.xml {extra_ctest_flags}
     """)
 
     return ctest_result
@@ -382,7 +389,7 @@ def dump_requested_config(options):
 @github_log_group("Build")
 def cmake_build(buildtype):
     generator_flags = "-- '-verbosity:minimal'" if WINDOWS else ""
-    parallel_jobs = "4" if WINDOWS else str(os.cpu_count())
+    parallel_jobs = "4" if WINDOWS else str(get_cgroup_cpu_limit())
 
     builddir = os.path.join(WORKDIR, "build")
     result = subprocess_with_log(f"""
@@ -517,7 +524,7 @@ def create_coverage_xml() -> None:
     # the output of -v to keep just the line with ` Processing file:`
     result = subprocess_with_log(f"""
         cd '{builddir}'
-        gcovr -j {os.cpu_count()} --output=cobertura-cov.xml --cobertura-pretty {ignore_errors} --merge-mode-functions=merge-use-line-min --exclude-unreachable-branches --exclude-directories="{ignore_directories}" --exclude='.*/({ignore_subpattern})/.*' {exclude_dictionaries} -r ../src ../build
+        gcovr -j {get_cgroup_cpu_limit()} --output=cobertura-cov.xml --cobertura-pretty {ignore_errors} --merge-mode-functions=merge-use-line-min --exclude-unreachable-branches --exclude-directories="{ignore_directories}" --exclude='.*/({ignore_subpattern})/.*' {exclude_dictionaries} -r ../src ../build
     """)
 
     if result != 0:
