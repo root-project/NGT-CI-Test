@@ -1,0 +1,240 @@
+name: test-gpu
+
+on:
+  # https://github.com/root-project/root/pull/12112#issuecomment-1411004278
+  pull_request:
+    branches:
+      - '**'
+    paths-ignore:
+      - 'doc/**'
+      - 'documentation/**'
+
+  # Enables manual start of workflow
+  workflow_dispatch:
+    inputs:
+      head_ref:
+        description: rebase from ...
+        type: string
+        required: true
+        default: master
+      base_ref:
+        description: ... to ... (can have same value)
+        type: string
+        required: true
+        default: master
+      incremental:
+        description: 'Do incremental build'
+        type: boolean
+        required: true
+        default: true
+      binaries:
+        description: Create binary packages and upload them as artifacts
+        type: boolean
+        required: true
+        default: false
+      buildtype:
+        description: The CMAKE_BUILD_TYPE to use for non-Windows.
+        type: choice
+        options:
+        - Debug
+        - RelWithDebInfo
+        - Release
+        - MinSizeRel
+        default: Debug
+        required: true
+
+env:
+  PYTHONUNBUFFERED: true
+  OS_APPLICATION_CREDENTIAL_ID: '7f5b64a265244623a3a933308569bdba'
+  OS_APPLICATION_CREDENTIAL_SECRET: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
+  OS_AUTH_TYPE: 'v3applicationcredential'
+  OS_AUTH_URL: 'https://keystone.cern.ch/v3'
+  OS_IDENTITY_API_VERSION: 3
+  OS_INTERFACE: 'public'
+  OS_REGION_NAME: 'cern'
+  GLOBAL_OVERRIDES: 'asserts=ON LLVM_ENABLE_ASSERTIONS=ON'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build-linux:
+    permissions:
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Specify image + (optional) build option overrides
+        #
+        # Available images: https://github.com/root-project/root-ci-images
+        # Common configs: {Release,Debug,RelWithDebInfo)
+        # Build options: https://root.cern/install/build_from_source/#all-build-options
+        include:
+          # - image: fedora42
+          #   overrides: ["CMAKE_CXX_STANDARD=23"]
+          - image: ubuntu2404
+            property: gpu
+            extra-runs-on: gpu
+
+    runs-on: dyngpu-root-a100
+
+    name: |
+      ${{ matrix.image }} ${{ matrix.property }}
+      ${{ (github.event_name != 'schedule' && github.event_name != 'workflow_dispatch' && join( matrix.overrides, ', ' )) || '' }}
+
+    container:
+      image: registry.cern.ch/root-ci/${{ matrix.image }}:buildready # KEEP IN SYNC WITH env key below
+      options: --security-opt label=disable --rm ${{ matrix.property == 'gpu' && '--device nvidia.com/gpu=all' || '' }} # KEEP IN SYNC WITH env key below
+      volumes:
+        - ${{ matrix.image }}_ccache_volume:/github/home/.cache/ccache
+      env:
+        CONTAINER_IMAGE: "registry.cern.ch/root-ci/${{ matrix.image }}:buildready" #KEEP IN SYNC WITH ABOVE
+        CONTAINER_OPTIONS: "--security-opt label=disable --rm ${{ matrix.property == 'gpu' && '--device nvidia.com/gpu=all' || '' }}" #KEEP IN SYNC WITH ABOVE
+
+    steps:
+      - name: Dump GitHub context
+        env:
+          GITHUB_CONTEXT: ${{ toJSON(github) }}
+          JOB_CONTEXT: ${{ toJSON(job) }}
+          ENV_CONTEXT: ${{ toJSON(env) }}
+        run: |
+          echo "$GITHUB_CONTEXT"
+          echo "--------------------------"
+          echo "$JOB_CONTEXT"
+          echo "--------------------------"
+          echo "$ENV_CONTEXT"
+
+      # The github.workspace context variable returns the path *outside* of the container.
+      # Therefore, we need to define environment variables inside the container
+      - name: Define environment
+        run: |
+          echo "SRC_DIR=${GITHUB_WORKSPACE}/src" >> "$GITHUB_ENV"
+          echo "BUILD_DIR=${GITHUB_WORKSPACE}/build" >> "$GITHUB_ENV"
+          echo "INSTALL_DIR=${GITHUB_WORKSPACE}/install" >> "$GITHUB_ENV"
+          echo "POST_INSTALL_DIR=${GITHUB_WORKSPACE}/postInstall" >> "$GITHUB_ENV"
+
+      - name: Cleanup home
+        run: rm -rf ${GITHUB_WORKSPACE}/* ${GITHUB_WORKSPACE}/.github
+
+      - name: Directory tree
+        run: ls -la
+
+      - name: Configure ccache
+        env:
+          CCACHE_SIZE: ${{ matrix.is_special && '5G' || '1.5G' }}
+        run: |
+          ccache -o max_size=${CCACHE_SIZE}
+          ccache -p || true
+          ccache -s || true
+
+      - name: Set up Python Virtual Env
+        # if the `if` expr is false, `if` still has exit code 0.
+        # if the `if` block is entered, the block's exit code becomes the exit
+        # code of the `if`.
+        run: 'if [ -d /py-venv/ROOT-CI/bin/ ]; then . /py-venv/ROOT-CI/bin/activate && echo PATH=$PATH >> $GITHUB_ENV; fi'
+
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          path: "src"
+
+      - name: Print debug info
+        run:  'printf "%s@%s\\n" "$(whoami)" "$(hostname)";
+               ls -la
+              '
+
+      - name: Apply option overrides from matrix for this job for all builds except non-special nightlies and releases
+        if: ${{ ( github.event_name != 'schedule' || matrix.is_special) && github.event_name != 'workflow_dispatch' && matrix.overrides != NaN }}
+        env:
+          OVERRIDES: ${{ join( matrix.overrides, ' ') }}
+          CONFIGFILE: 'buildconfig_overrides.txt'
+        shell: bash
+        run: |
+          set -x
+
+          echo '' >> "$CONFIGFILE"
+
+          for ENTRY in $GLOBAL_OVERRIDES $OVERRIDES; do
+              KEY=$( echo "$ENTRY" | cut -d '=' -f 1 )
+
+              # Add entry to file if not exists, otherwise replace
+
+              if grep -q "$KEY=" "$CONFIGFILE"; then
+                  sed -i "s/$KEY=.*\$/$ENTRY/" "$CONFIGFILE"
+              else
+                  echo "$ENTRY" >> "$CONFIGFILE"
+              fi
+          done
+
+          cat "$CONFIGFILE" || true
+
+      - uses: root-project/gcc-problem-matcher-improved@main
+        with:
+          build-directory: /github/home/ROOT-CI/src/
+
+      - name: Debug src
+        run: |
+          echo "PWD: $(pwd)"
+          echo "WORKSPACE: $GITHUB_WORKSPACE"
+          ls -la $GITHUB_WORKSPACE
+          ls -la $GITHUB_WORKSPACE/src || echo "SRC MISSING"
+
+
+      - name: Debug inputs
+        run: |
+          echo "base_ref=${{ inputs.base_ref }}"
+          echo "head_ref=${{ inputs.head_ref }}"
+
+          
+      - name: Workflow dispatch
+        if:   ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          echo "PWD: $(pwd)"
+          echo "WORKSPACE: $GITHUB_WORKSPACE"
+          ls -la $GITHUB_WORKSPACE
+          ls -la $GITHUB_WORKSPACE/src || echo "SRC MISSING"
+          set -e
+          src/.github/workflows/root-ci-config/build_root.py \
+            --buildtype      "${{ inputs.buildtype }}" \
+            --platform       "${{ matrix.image }}" \
+            --incremental    "${{ inputs.incremental }}" \
+            --base_ref       "${{ inputs.base_ref }}" \
+            --head_ref       "${{ inputs.head_ref }}" \
+            --binaries       "${{ inputs.binaries }}" \
+            --repository     "${{ github.server_url }}/${{ github.repository }}"
+
+      - name: Nightly build
+        if:   github.event_name == 'schedule'
+        run: "src/.github/workflows/root-ci-config/build_root.py
+                    --buildtype      Release
+                    --platform       ${{ matrix.image }}
+                    --incremental    false
+                    --binaries       true
+                    --base_ref       ${{ inputs.ref_name }}
+                    --repository     ${{ github.server_url }}/${{ github.repository }}
+              "
+
+      - name: Upload test results
+        if:   ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: Test Results ${{ matrix.image }} ${{ matrix.property }}
+          path: /github/home/ROOT-CI/build/TestResults.xml
+
+  event_file:
+    # For any event that is not a PR, the CI will always run. In PRs, the CI
+    # can be skipped if the tag [skip-ci] or [skip ci] is written in the title.
+    if: |
+        (github.repository_owner == 'root-project' && github.event_name != 'pull_request') ||
+        (github.event_name == 'pull_request' && !(contains(github.event.pull_request.title, '[skip-ci]') || contains(github.event.pull_request.title, '[skip ci]')))
+
+    name: "Upload Event Payload"
+    runs-on: ubuntu-latest
+    steps:
+    - name: Upload
+      uses: actions/upload-artifact@v4
+      with:
+        name: Event File
+        path: ${{ github.event_path }}
