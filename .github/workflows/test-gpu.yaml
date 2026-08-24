@@ -75,6 +75,7 @@ jobs:
           # - image: fedora42
           #   overrides: ["CMAKE_CXX_STANDARD=23"]
           - image: ubuntu2404-cuda
+            overrides: ["cuda=ON", "cudnn=ON", "tmva-gpu=ON"]
             property: gpu
             extra-runs-on: gpu
 
