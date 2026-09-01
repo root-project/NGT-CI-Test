@@ -74,8 +74,8 @@ jobs:
         include:
           # - image: fedora42
           #   overrides: ["CMAKE_CXX_STANDARD=23"]
-          - image: ubuntu2404-cuda
-            overrides: ["cuda=ON", "cudnn=ON", "tmva-gpu=ON", "tmva-cudnn=ON", "experimental_adaptivecpp=OFF"]
+          - image: ubuntu2404-cuda12
+            overrides: ["cuda=ON", "cudnn=ON", "tmva-gpu=ON"]
             property: gpu
             extra-runs-on: gpu
 
@@ -86,12 +86,12 @@ jobs:
       ${{ (github.event_name != 'schedule' && github.event_name != 'workflow_dispatch' && join( matrix.overrides, ', ' )) || '' }}
 
     container:
-      image: registry.cern.ch/root-ci/${{ matrix.image }}:buildready # KEEP IN SYNC WITH env key below
+      image: registry.cern.ch/digaponc/root-ci/${{ matrix.image }}:buildready # KEEP IN SYNC WITH env key below
       options: --security-opt label=disable --rm ${{ matrix.property == 'gpu' && '--device nvidia.com/gpu=all' || '' }} # KEEP IN SYNC WITH env key below
       volumes:
         - ${{ matrix.image }}_ccache_volume:/github/home/.cache/ccache
       env:
-        CONTAINER_IMAGE: "registry.cern.ch/root-ci/${{ matrix.image }}:buildready" #KEEP IN SYNC WITH ABOVE
+        CONTAINER_IMAGE: "registry.cern.ch/digaponc/root-ci/${{ matrix.image }}:buildready" #KEEP IN SYNC WITH ABOVE
         CONTAINER_OPTIONS: "--security-opt label=disable --rm ${{ matrix.property == 'gpu' && '--device nvidia.com/gpu=all' || '' }}" #KEEP IN SYNC WITH ABOVE
 
     steps:
