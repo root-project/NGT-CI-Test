@@ -79,8 +79,9 @@ jobs:
             property: gpu
             extra-runs-on: gpu
 
+    timeout-minutes: 1440
     runs-on: dyngpu-root-a100
-
+    
     name: |
       ${{ matrix.image }} ${{ matrix.property }}
       ${{ (github.event_name != 'schedule' && github.event_name != 'workflow_dispatch' && join( matrix.overrides, ', ' )) || '' }}
