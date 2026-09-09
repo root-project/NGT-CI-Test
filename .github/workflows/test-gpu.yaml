@@ -79,7 +79,7 @@ jobs:
             property: gpu
             extra-runs-on: gpu
 
-    timeout-minutes: 1440
+    timeout-minutes: 2880
     runs-on: dyngpu-root-a100
     
     name: |
