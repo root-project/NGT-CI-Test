@@ -35,7 +35,8 @@ from build_utils import (
     upload_file,
 )
 
-S3CONTAINER = 'ROOT-build-artifacts'  # Used for uploads
+# S3CONTAINER = 'ROOT-build-artifacts'  # Used for uploads
+S3CONTAINER = 'test-root-runner' # Test
 S3URL = 'https://s3.cern.ch/swift/v1/' + S3CONTAINER  # Used for downloads
 
 WINDOWS = (os.name == 'nt')
