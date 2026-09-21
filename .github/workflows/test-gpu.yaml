@@ -225,7 +225,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Test Results ${{ matrix.image }} ${{ matrix.property }}
-          path: /github/home/ROOT-CI/build/TestResults.xml
+          # path: /github/home/ROOT-CI/build/TestResults.xml
+          path: ${{ env.BUILD_DIR }}/TestResults.xml
 
   event_file:
     # For any event that is not a PR, the CI will always run. In PRs, the CI
