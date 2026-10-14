@@ -505,27 +505,6 @@ jobs:
         with:
           build-directory: /github/home/ROOT-CI/src/
 
-      - name: Pull Request Build
-        if:   ${{ github.event_name == 'pull_request' }}
-        env:
-          INCREMENTAL: ${{ !contains(github.event.pull_request.labels.*.name, 'clean build') }}
-          GITHUB_PR_ORIGIN: ${{ github.event.pull_request.head.repo.clone_url }}
-          OVERRIDES: ${{ join( matrix.overrides, ' ') }}
-        run: ".github/workflows/root-ci-config/build_root.py
-                    --buildtype       RelWithDebInfo
-                    --platform        ${{ matrix.image }}
-                    --platform_config ${{ matrix.platform_config }}
-                    --dockeropts      \"$CONTAINER_OPTIONS\"
-                    --incremental     $INCREMENTAL
-                    --base_ref        ${{ github.base_ref }}
-                    --sha             ${{ github.sha }}
-                    --pull_repository ${{ github.event.pull_request.head.repo.clone_url }}
-                    --head_ref        refs/pull/${{ github.event.pull_request.number }}/head:${{ github.event.pull_request.head.ref }}
-                    --head_sha        ${{ github.event.pull_request.head.sha }}
-                    --repository      ${{ github.server_url }}/${{ github.repository }}
-                    --overrides       ${GLOBAL_OVERRIDES} ${OVERRIDES}
-              "
-
       - name: Workflow dispatch
         if:   ${{ github.event_name == 'workflow_dispatch' && !matrix.is_special }}
         run: ".github/workflows/root-ci-config/build_root.py
