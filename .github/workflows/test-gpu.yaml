@@ -192,6 +192,25 @@ jobs:
           echo "base_ref=${{ inputs.base_ref }}"
           echo "head_ref=${{ inputs.head_ref }}"
 
+
+      - name: Diagnose CUDA driver visibility
+        shell: bash
+        run: |
+          echo "=== GPU visibility ==="
+          nvidia-smi || true
+      
+          echo "=== CUDA libraries in linker cache ==="
+          ldconfig -p | grep -E 'libcuda\.so' || true
+      
+          echo "=== CUDA libraries on disk ==="
+          find /usr /lib /opt -name 'libcuda.so*' 2>/dev/null || true
+      
+          echo "=== CUDA-related environment ==="
+          env | grep -E '^(CUDA|LD_LIBRARY_PATH|LIBRARY_PATH|PATH)=' || true
+      
+          echo "=== AdaptiveCpp runtime dependencies ==="
+          find "$GITHUB_WORKSPACE/build" -name 'libacpp-rt.so' 
+            -exec sh -c 'ldd "$1"' _ {} \; 2>/dev/null || true
           
       - name: Workflow dispatch
         if:   ${{ github.event_name == 'workflow_dispatch' }}
