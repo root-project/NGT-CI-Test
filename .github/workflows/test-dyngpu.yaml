@@ -26,7 +26,7 @@ on:
         description: 'Do incremental build'
         type: boolean
         required: true
-        default: true
+        default: false
       binaries:
         description: Create binary packages and upload them as artifacts
         type: boolean
@@ -45,8 +45,10 @@ on:
 
 env:
   PYTHONUNBUFFERED: true
-  OS_APPLICATION_CREDENTIAL_ID: '7f5b64a265244623a3a933308569bdba'
-  OS_APPLICATION_CREDENTIAL_SECRET: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
+  # OS_APPLICATION_CREDENTIAL_ID: '7f5b64a265244623a3a933308569bdba'
+  # OS_APPLICATION_CREDENTIAL_SECRET: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
+  OS_APPLICATION_CREDENTIAL_ID: ${{ secrets.OS_APP_ID }}
+  OS_APPLICATION_CREDENTIAL_SECRET: ${{ secrets.OS_APP_CREDENTIAL }}
   OS_AUTH_TYPE: 'v3applicationcredential'
   OS_AUTH_URL: 'https://keystone.cern.ch/v3'
   OS_IDENTITY_API_VERSION: 3
@@ -72,26 +74,28 @@ jobs:
         # Common configs: {Release,Debug,RelWithDebInfo)
         # Build options: https://root.cern/install/build_from_source/#all-build-options
         include:
-          - image: fedora42
-            overrides: ["CMAKE_CXX_STANDARD=23"]
-          # - image: ubuntu2404
-          #   property: gpu
-          #   extra-runs-on: gpu
+          # - image: fedora42
+          #   overrides: ["CMAKE_CXX_STANDARD=23"]
+          - image: ubuntu2404-cuda
+            # overrides: ["cuda=ON", "cudnn=ON", "tmva-gpu=ON"]
+            property: gpu
+            extra-runs-on: gpu
 
+    timeout-minutes: 2880
     runs-on: dyngpu-root-nogpu
-
+    
     name: |
       ${{ matrix.image }} ${{ matrix.property }}
       ${{ (github.event_name != 'schedule' && github.event_name != 'workflow_dispatch' && join( matrix.overrides, ', ' )) || '' }}
 
     container:
-      image: registry.cern.ch/root-ci/${{ matrix.image }}:buildready # KEEP IN SYNC WITH env key below
-      # options: --security-opt label=disable --rm ${{ matrix.property == 'gpu' && '--device nvidia.com/gpu=all' || '' }} # KEEP IN SYNC WITH env key below
+      image: registry.cern.ch/digaponc/root-ci/${{ matrix.image }}:buildready # KEEP IN SYNC WITH env key below
+      options: --security-opt label=disable --rm ${{ matrix.property == 'gpu' && '--device nvidia.com/gpu=all' || '' }} # KEEP IN SYNC WITH env key below
       # volumes:
         # - ${{ matrix.image }}_ccache_volume:/github/home/.cache/ccache
       env:
-        CONTAINER_IMAGE: "registry.cern.ch/root-ci/${{ matrix.image }}:buildready" #KEEP IN SYNC WITH ABOVE
-        # CONTAINER_OPTIONS: "--security-opt label=disable --rm ${{ matrix.property == 'gpu' && '--device nvidia.com/gpu=all' || '' }}" #KEEP IN SYNC WITH ABOVE
+        CONTAINER_IMAGE: "registry.cern.ch/digaponc/root-ci/${{ matrix.image }}:buildready" #KEEP IN SYNC WITH ABOVE
+        CONTAINER_OPTIONS: "--security-opt label=disable --rm ${{ matrix.property == 'gpu' && '--device nvidia.com/gpu=all' || '' }}" #KEEP IN SYNC WITH ABOVE
 
     steps:
       - name: Dump GitHub context
@@ -187,9 +191,25 @@ jobs:
           echo "base_ref=${{ inputs.base_ref }}"
           echo "head_ref=${{ inputs.head_ref }}"
 
-      # - name: Debug CMake
+
+      # - name: Diagnose CUDA driver visibility
+      #   shell: bash
       #   run: |
-      #     cmake -S $GITHUB_WORKSPACE/src -B $GITHUB_WORKSPACE/build -DCMAKE_BUILD_TYPE=Debug
+      #     echo "=== GPU visibility ==="
+      #     nvidia-smi || true
+      
+      #     echo "=== CUDA libraries in linker cache ==="
+      #     ldconfig -p | grep -E 'libcuda\.so' || true
+      
+      #     echo "=== CUDA libraries on disk ==="
+      #     find /usr /lib /opt -name 'libcuda.so*' 2>/dev/null || true
+      
+      #     echo "=== CUDA-related environment ==="
+      #     env | grep -E '^(CUDA|LD_LIBRARY_PATH|LIBRARY_PATH|PATH)=' || true
+      
+      #     echo "=== AdaptiveCpp runtime dependencies ==="
+      #     find "$GITHUB_WORKSPACE/build" -name 'libacpp-rt.so' 
+      #       -exec sh -c 'ldd "$1"' _ {} \; 2>/dev/null || true
           
       - name: Workflow dispatch
         if:   ${{ github.event_name == 'workflow_dispatch' }}
@@ -207,9 +227,6 @@ jobs:
             --head_ref       "${{ inputs.head_ref }}" \
             --binaries       "${{ inputs.binaries }}" \
             --repository     "${{ github.server_url }}/${{ github.repository }}"
-      - name: Sleep
-        run: |
-          sleep 3000
 
       - name: Nightly build
         if:   github.event_name == 'schedule'
@@ -227,7 +244,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Test Results ${{ matrix.image }} ${{ matrix.property }}
-          path: /github/home/ROOT-CI/build/TestResults.xml
+          # path: /github/home/ROOT-CI/build/TestResults.xml
+          path: ${{ env.BUILD_DIR }}/TestResults.xml
 
   event_file:
     # For any event that is not a PR, the CI will always run. In PRs, the CI

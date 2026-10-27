@@ -82,8 +82,8 @@ jobs:
             extra-runs-on: gpu
 
     timeout-minutes: 2880
-    #runs-on: dyngpu-root-a100
-    runs-on: dyngpu-root-nogpu
+    runs-on: dyngpu-root-a100
+    #runs-on: dyngpu-root-nogpu
     
     name: |
       ${{ matrix.image }} ${{ matrix.property }}
