@@ -174,9 +174,9 @@ jobs:
 
           cat "$CONFIGFILE" || true
 
-      - uses: root-project/gcc-problem-matcher-improved@main
-        with:
-          build-directory: /github/home/ROOT-CI/src/
+      # - uses: root-project/gcc-problem-matcher-improved@main
+      #   with:
+      #     build-directory: /github/home/ROOT-CI/src/
 
       - name: Debug src
         run: |
